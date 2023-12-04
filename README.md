@@ -38,3 +38,16 @@ cat inputs/day2 | cargo run --bin day2
 ```bash
 cat inputs/day3 | cargo run --bin day3
 ```
+
+## --- Day 4: Scratchcards ---
+
+### [Input](./inputs/day4)
+
+### [Solution](./src/day4.rs)
+
+- [x] Part 1
+- [x] Part 2
+
+```bash
+cat inputs/day4 | cargo run --bin day4
+```
