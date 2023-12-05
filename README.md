@@ -51,3 +51,16 @@ cat inputs/day3 | cargo run --bin day3
 ```bash
 cat inputs/day4 | cargo run --bin day4
 ```
+
+## --- Day 5: If You Give A Seed A Fertilizer ---
+
+### [Input](./inputs/day5)
+
+### [Solution](./src/day5.rs)
+
+- [x] Part 1
+- [x] Part 2
+
+```bash
+cat inputs/day5 | cargo run --bin day5
+```
