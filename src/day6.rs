@@ -38,6 +38,29 @@ impl State {
     }
 }
 
+fn find_root_distance(time: i64, distance: i64) -> i64 {
+    let discriminant = (time * time) - 4 * distance;
+    assert!(discriminant >= 0, "discriminant is negative");
+
+    let sqrt = (discriminant as f64).sqrt();
+
+    let root_1 = (time as f64 - sqrt) / 2.0;
+    let root_2 = (time as f64 + sqrt) / 2.0;
+
+    let root_1 = if root_1.ceil() == root_1 {
+        root_1 + 1.0
+    } else {
+        root_1.ceil()
+    } as i64;
+    let root_2 = if root_2.floor() == root_2 {
+        root_2 - 1.0
+    } else {
+        root_2.floor()
+    } as i64;
+
+    root_2 - root_1 + 1
+}
+
 fn main() {
     let lines = std::io::stdin()
         .lock()
@@ -53,58 +76,21 @@ fn main() {
         state
             .races
             .iter()
-            .map(|race| {
-                let discriminant = (race.time * race.time) - 4 * race.distance;
-                assert!(discriminant >= 0, "discriminant is negative");
-
-                let sqrt = (discriminant as f64).sqrt();
-
-                let root_1 = (race.time as f64 - sqrt) / 2.0;
-                let root_2 = (race.time as f64 + sqrt) / 2.0;
-
-                let root_1 = if root_1.ceil() == root_1 {
-                    root_1 + 1.0
-                } else {
-                    root_1.ceil()
-                } as i64;
-                let root_2 = if root_2.floor() == root_2 {
-                    root_2 - 1.0
-                } else {
-                    root_2.floor()
-                } as i64;
-
-                root_2 - root_1 + 1
-            })
+            .map(|race| find_root_distance(race.time, race.distance))
             .product::<i64>()
     );
 
     println!("part 2: {}", {
         let (time, distance) = state.races.iter().fold((0, 0), |(time, distance), race| {
-            let time = time * 10i64.pow((race.time as f64).log10().ceil() as u32) + race.time;
-            let distance =
-                distance * 10i64.pow((race.distance as f64).log10().ceil() as u32) + race.distance;
+            let time_log_10 = (race.time as f64).log10().ceil() as u32;
+            let distance_log_10 = (race.distance as f64).log10().ceil() as u32;
+
+            let time = time * 10i64.pow(time_log_10) + race.time;
+            let distance = distance * 10i64.pow(distance_log_10) + race.distance;
+
             (time, distance)
         });
 
-        let discriminant = (time * time) - 4 * distance;
-        assert!(discriminant >= 0, "discriminant is negative");
-
-        let sqrt = (discriminant as f64).sqrt();
-
-        let root_1 = (time as f64 - sqrt) / 2.0;
-        let root_2 = (time as f64 + sqrt) / 2.0;
-
-        let root_1 = if root_1.ceil() == root_1 {
-            root_1 + 1.0
-        } else {
-            root_1.ceil()
-        } as i64;
-        let root_2 = if root_2.floor() == root_2 {
-            root_2 - 1.0
-        } else {
-            root_2.floor()
-        } as i64;
-
-        root_2 - root_1 + 1
+        find_root_distance(time, distance)
     });
 }
