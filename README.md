@@ -64,3 +64,16 @@ cat inputs/day4 | cargo run --bin day4
 ```bash
 cat inputs/day5 | cargo run --bin day5
 ```
+
+## --- Day 6: Wait For It ---
+
+### [Input](./inputs/day6)
+
+### [Solution](./src/day6.rs)
+
+- [x] Part 1
+- [x] Part 2
+
+```bash
+cat inputs/day6 | cargo run --bin day6
+```
