@@ -31,9 +31,9 @@ impl State {
             .zip(next_idx)
             .map(|(idx, next_idx)| {
                 if idx == 0 {
-                    (&lines[idx..next_idx]).into_iter()
+                    lines[idx..next_idx].iter()
                 } else {
-                    (&lines[idx + 1..next_idx]).into_iter()
+                    lines[idx + 1..next_idx].iter()
                 }
             })
             .fold(Vec::new(), |mut state, mut lines| {
@@ -129,7 +129,6 @@ fn main() {
                 state
                     .seeds
                     .chunks(2)
-                    .into_iter()
                     .map(|seeds| seeds[0]..seeds[0] + seeds[1])
                     .collect::<Vec<_>>(),
                 |mut seeds, mappings| {

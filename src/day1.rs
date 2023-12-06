@@ -4,9 +4,9 @@ fn parse_digits_helper(
     line: &str,
     mappings: &[(&str, i32)],
     range: impl Fn(usize) -> std::ops::Range<usize>,
-    mut iter: impl Iterator<Item = (usize, char)>,
+    iter: impl Iterator<Item = (usize, char)>,
 ) -> Option<i32> {
-    while let Some((idx, c)) = iter.next() {
+    for (idx, c) in iter {
         let r = range(idx);
 
         for mapping in mappings {
