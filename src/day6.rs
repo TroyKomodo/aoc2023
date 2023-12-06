@@ -44,19 +44,8 @@ fn find_root_distance(time: i64, distance: i64) -> i64 {
 
     let sqrt = (discriminant as f64).sqrt();
 
-    let root_1 = (time as f64 - sqrt) / 2.0;
-    let root_2 = (time as f64 + sqrt) / 2.0;
-
-    let root_1 = if root_1.ceil() == root_1 {
-        root_1 + 1.0
-    } else {
-        root_1.ceil()
-    } as i64;
-    let root_2 = if root_2.floor() == root_2 {
-        root_2 - 1.0
-    } else {
-        root_2.floor()
-    } as i64;
+    let root_1 = ((time as f64 - sqrt) / 2.0 + 1.0).floor() as i64;
+    let root_2 = ((time as f64 + sqrt) / 2.0 - 1.0).ceil() as i64;
 
     root_2 - root_1 + 1
 }
