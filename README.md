@@ -77,3 +77,16 @@ cat inputs/day5 | cargo run --bin day5
 ```bash
 cat inputs/day6 | cargo run --bin day6
 ```
+
+## --- Day 7: Camel Cards ---
+
+### [Input](./inputs/day7)
+
+### [Solution](./src/day7.rs)
+
+- [x] Part 1
+- [x] Part 2
+
+```bash
+cat inputs/day7 | cargo run --bin day7
+```
