@@ -1,4 +1,21 @@
-use std::{collections::HashSet, io::BufRead};
+use std::collections::HashSet;
+
+#[derive(Debug)]
+struct State {
+    cards: Vec<Card>,
+}
+
+impl<D: AsRef<str>> std::iter::FromIterator<D> for State {
+    fn from_iter<T: IntoIterator<Item = D>>(iter: T) -> Self {
+        Self {
+            cards: iter
+                .into_iter()
+                .map(|s| s.as_ref().parse())
+                .collect::<Result<_, _>>()
+                .unwrap(),
+        }
+    }
+}
 
 #[derive(Debug)]
 struct Card {
@@ -38,52 +55,85 @@ impl std::str::FromStr for Card {
     }
 }
 
-fn main() {
-    let lines = std::io::stdin()
-        .lock()
-        .lines()
-        .map_while(Result::ok)
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<String>>();
-
-    let cards = lines
+fn part_1(state: &State) -> i32 {
+    state
+        .cards
         .iter()
-        .filter_map(|line| line.parse::<Card>().ok())
-        .collect::<Vec<Card>>();
+        .map(|card| {
+            let count = card
+                .numbers
+                .iter()
+                .filter(|n| card.winning_numbers.contains(n))
+                .count() as u32;
+            if count == 0 {
+                0
+            } else {
+                2_i32.pow(count - 1)
+            }
+        })
+        .sum()
+}
 
-    println!(
-        "part 1: {}",
-        cards
-            .iter()
-            .map(|card| {
-                let count = card
-                    .numbers
-                    .iter()
-                    .filter(|n| card.winning_numbers.contains(n))
-                    .count() as u32;
-                if count == 0 {
-                    0
-                } else {
-                    2_i32.pow(count - 1)
-                }
-            })
-            .sum::<i32>()
-    );
-
-    println!("part 2: {}", {
-        let mut card_counts = vec![1; cards.len()];
-
-        cards.iter().for_each(|card| {
+fn part_2(state: &State) -> i32 {
+    state
+        .cards
+        .iter()
+        .fold(vec![1; state.cards.len()], |mut acc, card| {
             let count = card
                 .numbers
                 .iter()
                 .filter(|n| card.winning_numbers.contains(n))
                 .count();
             for i in card.idx..card.idx + count {
-                card_counts[i] += card_counts[card.idx - 1];
+                acc[i] += acc[card.idx - 1];
             }
-        });
 
-        card_counts.iter().sum::<i32>()
-    });
+            acc
+        })
+        .iter()
+        .sum()
+}
+
+fn main() {
+    let state = aoc::get_input();
+
+    println!("part 1: {}", part_1(&state));
+
+    println!("part 2: {}", part_2(&state));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const INPUT: &str = include_str!("../inputs/day4");
+    const EXAMPLE_INPUT: &str = include_str!("../examples/day4");
+
+    #[test]
+    fn test_example_part_1() {
+        let cards = aoc::get_input_from(EXAMPLE_INPUT);
+
+        assert_eq!(part_1(&cards), 13);
+    }
+
+    #[test]
+    fn test_example_part_2() {
+        let cards = aoc::get_input_from(EXAMPLE_INPUT);
+
+        assert_eq!(part_2(&cards), 30);
+    }
+
+    #[test]
+    fn test_part_1() {
+        let cards = aoc::get_input_from(INPUT);
+
+        assert_eq!(part_1(&cards), 24733);
+    }
+
+    #[test]
+    fn test_part_2() {
+        let cards = aoc::get_input_from(INPUT);
+
+        assert_eq!(part_2(&cards), 5422730);
+    }
 }

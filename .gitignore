@@ -1,1 +1,3 @@
-/target
+target/
+lcov.info
+coverage/

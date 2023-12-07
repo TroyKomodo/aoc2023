@@ -1,5 +1,3 @@
-use std::io::BufRead;
-
 #[derive(Debug)]
 enum Symbol {
     Number(u32),
@@ -73,35 +71,24 @@ impl std::str::FromStr for Row {
 }
 
 #[derive(Debug, Default)]
-struct Grid {
+struct State {
     rows: Vec<Row>,
 }
 
-impl Grid {
-    fn parse_from_lines<'a, D: std::ops::Deref<Target = str> + 'a>(
-        lines: impl Iterator<Item = &'a D>,
-    ) -> Result<Self, ()> {
-        Ok(Self {
-            rows: lines
-                .map(|line| line.parse::<Row>())
-                .collect::<Result<_, _>>()?,
-        })
-    }
-}
-
-impl std::str::FromStr for Grid {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        s.lines()
-            .map(|line| line.parse::<Row>())
-            .collect::<Result<Vec<Row>, ()>>()
-            .map(|rows| Self { rows })
+impl<D: AsRef<str>> std::iter::FromIterator<D> for State {
+    fn from_iter<T: IntoIterator<Item = D>>(iter: T) -> Self {
+        Self {
+            rows: iter
+                .into_iter()
+                .map(|s| s.as_ref().parse())
+                .collect::<Result<_, _>>()
+                .unwrap(),
+        }
     }
 }
 
 fn search_grid<R>(
-    grid: &Grid,
+    grid: &State,
     matcher: impl Fn(&Node) -> Option<R> + Clone + Copy,
     combiner: impl Fn(R, [&[Node]; 3]) -> Option<u32>,
 ) -> u32 {
@@ -157,61 +144,92 @@ fn search_grid<R>(
         .sum::<u32>()
 }
 
-fn main() {
-    let lines = std::io::stdin()
-        .lock()
-        .lines()
-        .map_while(Result::ok)
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<String>>();
+fn part1(state: &State) -> u32 {
+    search_grid(
+        state,
+        |node| {
+            if let Symbol::Number(value) = node.symbol {
+                Some(value)
+            } else {
+                None
+            }
+        },
+        |value, rows| {
+            rows.into_iter()
+                .flatten()
+                .any(|node| matches!(node.symbol, Symbol::Star | Symbol::Unknown(_)))
+                .then_some(value)
+        },
+    )
+}
 
-    let grid = Grid::parse_from_lines(lines.iter()).unwrap();
-
-    println!(
-        "part 1: {}",
-        search_grid(
-            &grid,
-            |node| {
+fn part2(state: &State) -> u32 {
+    search_grid(
+        state,
+        |node| {
+            if matches!(node.symbol, Symbol::Star) {
+                Some(())
+            } else {
+                None
+            }
+        },
+        |_, rows| {
+            let mut iter = rows.into_iter().flatten().filter_map(|node| {
                 if let Symbol::Number(value) = node.symbol {
                     Some(value)
                 } else {
                     None
                 }
-            },
-            |value, rows| {
-                rows.into_iter()
-                    .flatten()
-                    .any(|node| matches!(node.symbol, Symbol::Star | Symbol::Unknown(_)))
-                    .then_some(value)
-            }
-        ),
-    );
+            });
 
-    println!(
-        "part 2: {}",
-        search_grid(
-            &grid,
-            |node| {
-                if matches!(node.symbol, Symbol::Star) {
-                    Some(())
-                } else {
-                    None
-                }
-            },
-            |_, rows| {
-                let mut iter = rows.into_iter().flatten().filter_map(|node| {
-                    if let Symbol::Number(value) = node.symbol {
-                        Some(value)
-                    } else {
-                        None
-                    }
-                });
+            let first = iter.next()?;
+            let second = iter.next()?;
 
-                let first = iter.next()?;
-                let second = iter.next()?;
+            Some(first * second)
+        },
+    )
+}
 
-                Some(first * second)
-            }
-        ),
-    );
+fn main() {
+    let state = aoc::get_input();
+
+    println!("part 1: {}", part1(&state));
+
+    println!("part 2: {}", part2(&state));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const INPUT: &str = include_str!("../inputs/day3");
+    const EXAMPLE_INPUT: &str = include_str!("../examples/day3");
+
+    #[test]
+    fn test_example_part_1() {
+        let state = aoc::get_input_from(EXAMPLE_INPUT);
+
+        assert_eq!(part1(&state), 4361);
+    }
+
+    #[test]
+    fn test_example_part_2() {
+        let state = aoc::get_input_from(EXAMPLE_INPUT);
+
+        assert_eq!(part2(&state), 467835);
+    }
+
+    #[test]
+    fn test_part_1() {
+        let state = aoc::get_input_from(INPUT);
+
+        assert_eq!(part1(&state), 530849);
+    }
+
+    #[test]
+    fn test_part_2() {
+        let state = aoc::get_input_from(INPUT);
+
+        assert_eq!(part2(&state), 84900879);
+    }
 }

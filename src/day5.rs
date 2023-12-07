@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::BufRead};
+use std::collections::HashMap;
 
 #[derive(Debug, Default)]
 struct State {
@@ -6,14 +6,13 @@ struct State {
     conversions: Vec<Vec<(std::ops::Range<i64>, i64)>>,
 }
 
-const START: &str = "seed";
-const END: &str = "location";
+impl<D: AsRef<str>> std::iter::FromIterator<D> for State {
+    fn from_iter<T: IntoIterator<Item = D>>(iter: T) -> Self {
+        let lines = iter.into_iter().collect::<Vec<_>>();
 
-impl State {
-    fn from_lines(lines: &[String]) -> Self {
         let empty_lines =
             std::iter::once(0).chain(lines.iter().enumerate().filter_map(|(idx, line)| {
-                if line.is_empty() {
+                if line.as_ref().is_empty() {
                     Some(idx)
                 } else {
                     None
@@ -37,7 +36,7 @@ impl State {
                 }
             })
             .fold(Vec::new(), |mut state, mut lines| {
-                let header = lines.next().unwrap();
+                let header = lines.next().unwrap().as_ref();
 
                 if let Some(seeds) = header.strip_prefix("seeds: ") {
                     state = seeds.split(' ').filter_map(|s| s.parse().ok()).collect();
@@ -49,7 +48,10 @@ impl State {
 
                     let mut mappings = lines
                         .map(|line| {
-                            let mut ranges = line.split(' ').filter_map(|s| s.parse::<i64>().ok());
+                            let mut ranges = line
+                                .as_ref()
+                                .split(' ')
+                                .filter_map(|s| s.parse::<i64>().ok());
                             let dest_start = ranges.next().unwrap();
                             let src_start = ranges.next().unwrap();
                             let length = ranges.next().unwrap();
@@ -81,124 +83,154 @@ impl State {
     }
 }
 
-fn main() {
-    let lines = std::io::stdin()
-        .lock()
-        .lines()
-        .map_while(Result::ok)
-        .collect::<Vec<String>>();
+const START: &str = "seed";
+const END: &str = "location";
 
-    let state = State::from_lines(&lines);
+fn part_1(state: &State) -> i64 {
+    state
+        .seeds
+        .iter()
+        .copied()
+        .map(|seed| {
+            state.conversions.iter().fold(seed, |seed, mappings| {
+                mappings
+                    .binary_search_by(|(range, _)| {
+                        if range.contains(&seed) {
+                            std::cmp::Ordering::Equal
+                        } else if range.start > seed {
+                            std::cmp::Ordering::Greater
+                        } else {
+                            std::cmp::Ordering::Less
+                        }
+                    })
+                    .ok()
+                    .map(|idx| {
+                        let (range, dest) = &mappings[idx];
 
-    println!(
-        "part 1: {}",
-        state
-            .seeds
-            .iter()
-            .copied()
-            .map(|seed| {
-                state.conversions.iter().fold(seed, |seed, mappings| {
-                    mappings
-                        .binary_search_by(|(range, _)| {
-                            if range.contains(&seed) {
-                                std::cmp::Ordering::Equal
-                            } else if range.start > seed {
-                                std::cmp::Ordering::Greater
-                            } else {
-                                std::cmp::Ordering::Less
-                            }
-                        })
-                        .ok()
-                        .map(|idx| {
-                            let (range, dest) = &mappings[idx];
-
-                            dest + seed - range.start
-                        })
-                        .unwrap_or(seed)
-                })
+                        dest + seed - range.start
+                    })
+                    .unwrap_or(seed)
             })
-            .min()
-            .unwrap()
-    );
+        })
+        .min()
+        .unwrap()
+}
 
-    println!("part 2: {}", {
-        state
-            .conversions
-            .iter()
-            .fold(
-                state
-                    .seeds
-                    .chunks(2)
-                    .map(|seeds| seeds[0]..seeds[0] + seeds[1])
-                    .collect::<Vec<_>>(),
-                |mut seeds, mappings| {
-                    let new_ranges = mappings
-                        .iter()
-                        .flat_map(|(mapped_range, dest)| {
-                            let addition = dest - mapped_range.start;
+fn part_2(state: &State) -> i64 {
+    state
+        .conversions
+        .iter()
+        .fold(
+            state
+                .seeds
+                .chunks(2)
+                .map(|seeds| seeds[0]..seeds[0] + seeds[1])
+                .collect::<Vec<_>>(),
+            |mut seeds, mappings| {
+                let new_ranges = mappings
+                    .iter()
+                    .flat_map(|(mapped_range, dest)| {
+                        let addition = dest - mapped_range.start;
 
-                            let mut old_seeds = Vec::new();
+                        let mut old_seeds = Vec::new();
 
-                            let new_seeds = seeds
-                                .iter_mut()
-                                .filter_map(|range| {
-                                    let range_start = range.start;
-                                    let range_end = range.end;
+                        let new_seeds = seeds
+                            .iter_mut()
+                            .filter_map(|range| {
+                                let range_start = range.start;
+                                let range_end = range.end;
 
-                                    match (
-                                        mapped_range.contains(&range.start),
-                                        mapped_range.contains(&range.end),
-                                        range.contains(&mapped_range.start),
-                                        range.contains(&mapped_range.end),
-                                    ) {
-                                        (true, true, _, _) => {
-                                            range.start = 0;
-                                            range.end = 0;
-                                            Some(range_start + addition..range_end + addition)
-                                        }
-                                        (true, false, _, _) => {
-                                            range.start = mapped_range.end;
-                                            Some(
-                                                range_start + addition..mapped_range.end + addition,
-                                            )
-                                        }
-                                        (false, true, _, _) => {
-                                            range.end = mapped_range.start;
-                                            Some(
-                                                mapped_range.start + addition..range_end + addition,
-                                            )
-                                        }
-                                        (false, false, true, true) => {
-                                            range.end = mapped_range.start;
-                                            old_seeds.push(mapped_range.end..range_end);
-                                            Some(
-                                                mapped_range.start + addition
-                                                    ..mapped_range.end + addition,
-                                            )
-                                        }
-                                        (false, false, false, false) => None,
-                                        _ => unreachable!(
-                                    "invalid range: range={range:?} mapped_range={mapped_range:?}"
-                                ),
+                                match (
+                                    mapped_range.contains(&range.start),
+                                    mapped_range.contains(&range.end),
+                                    range.contains(&mapped_range.start),
+                                    range.contains(&mapped_range.end),
+                                ) {
+                                    (true, true, _, _) => {
+                                        range.start = 0;
+                                        range.end = 0;
+                                        Some(range_start + addition..range_end + addition)
                                     }
-                                })
-                                .collect::<Vec<_>>();
+                                    (true, false, _, _) => {
+                                        range.start = mapped_range.end;
+                                        Some(range_start + addition..mapped_range.end + addition)
+                                    }
+                                    (false, true, _, _) => {
+                                        range.end = mapped_range.start;
+                                        Some(mapped_range.start + addition..range_end + addition)
+                                    }
+                                    (false, false, true, true) => {
+                                        range.end = mapped_range.start;
+                                        old_seeds.push(mapped_range.end..range_end);
+                                        Some(mapped_range.start + addition
+                                            ..mapped_range.end + addition)
+                                    }
+                                    (false, false, false, false) => None,
+                                    _ => unreachable!(
+                                        "invalid range: range={range:?} mapped_range={mapped_range:?}"
+                                    ),
+                                }
+                            })
+                            .collect::<Vec<_>>();
 
-                            seeds.retain(|r| r.start != r.end);
-                            seeds.extend(old_seeds);
+                        seeds.retain(|r| r.start != r.end);
+                        seeds.extend(old_seeds);
 
-                            new_seeds
-                        })
-                        .collect::<Vec<_>>();
+                        new_seeds
+                    })
+                    .collect::<Vec<_>>();
 
-                    seeds.extend(new_ranges);
+                seeds.extend(new_ranges);
 
-                    seeds
-                },
-            )
-            .into_iter()
-            .map(|r| r.start)
-            .min()
-            .unwrap()
-    });
+                seeds
+            },
+        )
+        .into_iter()
+        .map(|r| r.start)
+        .min()
+        .unwrap()
+}
+
+fn main() {
+    let state = aoc::get_input();
+
+    println!("part 1: {}", part_1(&state));
+
+    println!("part 2: {}", part_2(&state));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const INPUT: &str = include_str!("../inputs/day5");
+    const EXAMPLE_INPUT: &str = include_str!("../examples/day5");
+
+    #[test]
+    fn test_example_part_1() {
+        let state = aoc::get_input_from(EXAMPLE_INPUT);
+
+        assert_eq!(part_1(&state), 35);
+    }
+
+    #[test]
+    fn test_example_part_2() {
+        let state = aoc::get_input_from(EXAMPLE_INPUT);
+
+        assert_eq!(part_2(&state), 46);
+    }
+
+    #[test]
+    fn test_part_1() {
+        let state = aoc::get_input_from(INPUT);
+
+        assert_eq!(part_1(&state), 174137457);
+    }
+
+    #[test]
+    fn test_part_2() {
+        let state = aoc::get_input_from(INPUT);
+
+        assert_eq!(part_2(&state), 1493866);
+    }
 }
